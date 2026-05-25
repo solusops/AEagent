@@ -1,6 +1,7 @@
 defmodule AOS.AgentOS.MCP.InternalShellTest do
   use ExUnit.Case, async: true
 
+  alias AOS.AgentOS.Config
   alias AOS.AgentOS.MCP.Internal.Shell
 
   test "blocks commands outside the allowlist" do
@@ -24,6 +25,19 @@ defmodule AOS.AgentOS.MCP.InternalShellTest do
     assert {:error, reason} =
              Shell.call_tool("write_file", %{
                "path" => "/tmp/internal-shell-test.txt",
+               "content" => "blocked"
+             })
+
+    assert inspect(reason) =~ "path_outside_workspace"
+  end
+
+  test "blocks file writes to sibling paths that share the workspace prefix" do
+    workspace = Config.workspace_root()
+    sibling_path = workspace <> "_sibling/escape.txt"
+
+    assert {:error, reason} =
+             Shell.call_tool("write_file", %{
+               "path" => sibling_path,
                "content" => "blocked"
              })
 

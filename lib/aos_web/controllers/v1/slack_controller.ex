@@ -73,17 +73,17 @@ defmodule AOSWeb.V1.SlackController do
       stale_timestamp?(timestamp) ->
         false
 
-      true ->
-        signing_bases(conn, timestamp, raw_body)
-        |> Enum.any?(fn base ->
-          expected =
-            "v0=" <>
-              (:crypto.mac(:hmac, :sha256, signing_secret, base)
-               |> Base.encode16(case: :lower))
+      not is_binary(raw_body) ->
+        false
 
-          byte_size(signature) == byte_size(expected) and
-            Plug.Crypto.secure_compare(signature, expected)
-        end)
+      true ->
+        expected =
+          "v0=" <>
+            (:crypto.mac(:hmac, :sha256, signing_secret, "v0:#{timestamp}:#{raw_body}")
+             |> Base.encode16(case: :lower))
+
+        byte_size(signature) == byte_size(expected) and
+          Plug.Crypto.secure_compare(signature, expected)
     end
   end
 
@@ -105,18 +105,6 @@ defmodule AOSWeb.V1.SlackController do
   end
 
   defp valid_secret?(_provided, _configured), do: false
-
-  defp signing_bases(conn, timestamp, raw_body) do
-    params_body =
-      conn.body_params
-      |> Map.drop(["controller", "action"])
-      |> Enum.map(fn {key, value} -> {to_string(key), to_string(value)} end)
-      |> URI.encode_query()
-
-    ["v0:#{timestamp}:#{raw_body}", "v0:#{timestamp}:#{params_body}"]
-    |> Enum.reject(&String.ends_with?(&1, ":"))
-    |> Enum.uniq()
-  end
 
   defp persist_slack_metadata(session_id, params) do
     metadata =

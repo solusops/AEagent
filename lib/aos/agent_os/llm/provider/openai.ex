@@ -39,8 +39,10 @@ defmodule AOS.AgentOS.LLM.Provider.OpenAI do
 
     case HTTPClient.get(url, headers) do
       {:ok, %{status: 200, body: body}} ->
-        data = Jason.decode!(body)
-        {:ok, Enum.map(data["data"] || [], & &1["id"])}
+        case Jason.decode(body) do
+          {:ok, data} -> {:ok, Enum.map(data["data"] || [], & &1["id"])}
+          {:error, reason} -> {:error, {:invalid_models_response, reason}}
+        end
 
       _ ->
         {:error, :failed_to_list_models}
@@ -116,29 +118,56 @@ defmodule AOS.AgentOS.LLM.Provider.OpenAI do
   defp scrub_utf8(any), do: any
 
   defp parse_raw_response(body) do
-    data = Jason.decode!(body)
+    case Jason.decode(body) do
+      {:ok, data} -> parse_decoded_response(data)
+      {:error, reason} -> {:error, {:invalid_json_response, reason}}
+    end
+  end
+
+  defp parse_decoded_response(data) do
     choice = get_in(data, ["choices", Access.at(0), "message"])
     usage = Usage.normalize_usage(data["usage"])
     model = data["model"]
 
-    cond do
-      choice && choice["tool_calls"] ->
-        calls =
-          Enum.map(choice["tool_calls"], fn tc ->
-            %{
-              "id" => tc["id"],
-              "name" => tc["function"]["name"],
-              "arguments" => Jason.decode!(tc["function"]["arguments"] || "{}")
-            }
-          end)
+    parse_choice(choice, usage, model)
+  end
 
-        {:ok, Usage.build_tool_call_response(calls, usage, model)}
-
-      choice && choice["content"] ->
-        {:ok, Usage.build_text_response(choice["content"], usage, model)}
-
-      true ->
-        {:error, :empty_response}
+  defp parse_choice(%{"tool_calls" => tool_calls}, usage, model) do
+    case parse_tool_calls(tool_calls) do
+      {:ok, calls} -> {:ok, Usage.build_tool_call_response(calls, usage, model)}
+      {:error, reason} -> {:error, reason}
     end
   end
+
+  defp parse_choice(%{"content" => content}, usage, model) when is_binary(content),
+    do: {:ok, Usage.build_text_response(content, usage, model)}
+
+  defp parse_choice(_choice, _usage, _model), do: {:error, :empty_response}
+
+  defp parse_tool_calls(tool_calls) when is_list(tool_calls) do
+    Enum.reduce_while(tool_calls, {:ok, []}, fn tool_call, {:ok, acc} ->
+      case parse_tool_call(tool_call) do
+        {:ok, call} -> {:cont, {:ok, [call | acc]}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+    |> case do
+      {:ok, calls} -> {:ok, Enum.reverse(calls)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp parse_tool_calls(_tool_calls), do: {:error, :invalid_tool_calls}
+
+  defp parse_tool_call(%{"id" => id, "function" => %{"name" => name} = function}) do
+    case Jason.decode(function["arguments"] || "{}") do
+      {:ok, arguments} ->
+        {:ok, %{"id" => id, "name" => name, "arguments" => arguments}}
+
+      {:error, reason} ->
+        {:error, {:invalid_tool_arguments, name, reason}}
+    end
+  end
+
+  defp parse_tool_call(_tool_call), do: {:error, :invalid_tool_call}
 end

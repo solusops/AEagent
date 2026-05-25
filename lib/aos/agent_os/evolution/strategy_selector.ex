@@ -4,6 +4,7 @@ defmodule AOS.AgentOS.Evolution.StrategySelector do
   """
 
   alias AOS.AgentOS.Config
+  alias AOS.AgentOS.Core.Graph
   alias AOS.AgentOS.Evolution.{Blueprint, StrategyMutator, StrategyRegistry}
 
   def select(domain, task) do
@@ -52,12 +53,18 @@ defmodule AOS.AgentOS.Evolution.StrategySelector do
         with {:ok, mutated} <-
                StrategyRegistry.register_blueprint(domain, task, blueprint, metadata),
              {:ok, graph} <- Blueprint.to_graph(mutated.graph_blueprint) do
-          {:ok, StrategyRegistry.attach_strategy(graph, mutated, :mutation)}
+          {:ok,
+           graph
+           |> Graph.set_domain(domain)
+           |> StrategyRegistry.attach_strategy(mutated, :mutation)}
         end
 
       :none ->
         with {:ok, graph} <- Blueprint.to_graph(strategy.graph_blueprint) do
-          {:ok, StrategyRegistry.attach_strategy(graph, strategy, :registry)}
+          {:ok,
+           graph
+           |> Graph.set_domain(domain)
+           |> StrategyRegistry.attach_strategy(strategy, :registry)}
         end
     end
   end

@@ -238,7 +238,7 @@ defmodule AOS.AgentOS.Executions do
     initial_context = runtime_initial_context
     autonomy_level = Autonomy.normalize_level(Keyword.get(opts, :autonomy_level))
     graph = graph_builder.(task, notify: notify_pid)
-    domain = HistoryService.infer_domain(graph)
+    domain = graph.domain || HistoryService.infer_domain(graph)
     StrategyEvaluator.mark_used(graph.strategy_id)
 
     Engine.run(

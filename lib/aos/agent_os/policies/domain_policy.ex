@@ -5,20 +5,21 @@ defmodule AOS.AgentOS.Policies.DomainPolicy do
   """
   @behaviour AOS.AgentOS.Core.Policy
   require Logger
+  alias AOS.AgentOS.Core.Nodes.LLMEvaluator
+  alias AOS.AgentOS.Roles.Reporter
 
   @impl true
   def check(context, next_node_id) do
-    domain = Map.get(context, :domain, :general)
+    domain = context |> Map.get(:domain, :general) |> normalize_domain()
     history = Map.get(context, :execution_history, [])
+    graph_nodes = Map.get(context, :graph_nodes, %{})
+    next_module = Map.get(graph_nodes, next_node_id)
 
-    # 1. Coding Domain Rule: Must pass through evaluator before reporter
-    # Check if the next node is intended to be a reporter
-    # Note: next_node_id is an atom from the graph transitions
-    if domain == :coding and next_node_id == :reporter do
+    if domain == "coding" and reporter_node?(next_node_id, next_module) do
       has_evaluated =
         Enum.any?(history, fn step ->
           node_id = step[:node_id] || step["node_id"]
-          to_string(node_id) in ["evaluator", "reviewer", "reviewer_agent"]
+          evaluator_node?(node_id, Map.get(graph_nodes, node_id))
         end)
 
       if has_evaluated do
@@ -30,5 +31,16 @@ defmodule AOS.AgentOS.Policies.DomainPolicy do
     else
       {:ok, context}
     end
+  end
+
+  defp normalize_domain(domain), do: domain |> to_string() |> String.downcase()
+
+  defp reporter_node?(_node_id, Reporter), do: true
+  defp reporter_node?(node_id, _module), do: to_string(node_id) == "reporter"
+
+  defp evaluator_node?(_node_id, LLMEvaluator), do: true
+
+  defp evaluator_node?(node_id, _module) do
+    to_string(node_id) in ["critic", "evaluator", "reviewer", "reviewer_agent"]
   end
 end

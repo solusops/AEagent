@@ -4,13 +4,22 @@ defmodule AOS.AgentOS.MCP.Tools.Helpers do
   alias AOS.AgentOS.Config
 
   def validate_workspace_path(path) do
-    expanded = Path.expand(path, workspace_root())
+    root = workspace_root()
+    expanded = Path.expand(path, root)
 
-    if String.starts_with?(expanded, workspace_root()) do
+    if inside_workspace?(expanded, root) do
       {:ok, expanded}
     else
       {:error, :path_outside_workspace}
     end
+  end
+
+  def inside_workspace?(path, root \\ workspace_root()) do
+    expanded_path = Path.expand(path)
+    expanded_root = Path.expand(root)
+
+    expanded_path == expanded_root or
+      String.starts_with?(expanded_path, expanded_root <> "/")
   end
 
   def workspace_root do

@@ -155,6 +155,7 @@ defmodule AOS.AgentOS.Core.Architect do
 
   defp emergency_graph do
     Graph.new(:emergency_graph)
+    |> Graph.set_domain(:general)
     |> Graph.add_node(:thinker, LLMWorker)
     |> Graph.add_node(:reporter, Reporter)
     |> Graph.set_initial(:thinker)
@@ -164,6 +165,7 @@ defmodule AOS.AgentOS.Core.Architect do
 
   defp panel_debate_graph do
     Graph.new(:panel_debate_graph)
+    |> Graph.set_domain(:general)
     |> Graph.add_node(:collaborator, PanelDebate)
     |> Graph.add_node(:reporter, Reporter)
     |> Graph.set_initial(:collaborator)

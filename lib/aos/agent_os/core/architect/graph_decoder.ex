@@ -5,9 +5,9 @@ defmodule AOS.AgentOS.Core.Architect.GraphDecoder do
 
   alias AOS.AgentOS.Core.{Graph, NodeRegistry}
 
-  def parse_and_build(response, _domain) when is_binary(response) do
+  def parse_and_build(response, domain) when is_binary(response) do
     with {:ok, decoded} <- Jason.decode(response),
-         {:ok, graph} <- build_graph(decoded) do
+         {:ok, graph} <- build_graph(decoded, domain) do
       {:ok, graph}
     else
       _ -> {:error, :invalid_graph_json}
@@ -16,13 +16,17 @@ defmodule AOS.AgentOS.Core.Architect.GraphDecoder do
 
   def parse_and_build(_response, _domain), do: {:error, :invalid_graph_json}
 
-  defp build_graph(%{
-         "nodes" => nodes,
-         "initial_node" => initial_node,
-         "transitions" => transitions
-       }) do
+  defp build_graph(
+         %{
+           "nodes" => nodes,
+           "initial_node" => initial_node,
+           "transitions" => transitions
+         },
+         domain
+       ) do
     graph =
       Graph.new(:architect_graph)
+      |> Graph.set_domain(domain)
       |> add_nodes(nodes)
       |> Graph.set_initial(normalize_node_id(initial_node))
       |> add_transitions(transitions)
@@ -35,7 +39,7 @@ defmodule AOS.AgentOS.Core.Architect.GraphDecoder do
     end
   end
 
-  defp build_graph(_decoded), do: {:error, :invalid_graph_shape}
+  defp build_graph(_decoded, _domain), do: {:error, :invalid_graph_shape}
 
   defp add_nodes(graph, nodes) do
     Enum.reduce(nodes, graph, fn {node_id, component_id}, acc ->

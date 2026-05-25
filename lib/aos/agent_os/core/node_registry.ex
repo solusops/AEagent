@@ -15,7 +15,7 @@ defmodule AOS.AgentOS.Core.NodeRegistry do
     "skill_selector" => %{mod: SkillSelector, domain: :all, layer: :hands},
 
     # L3: Reflection & Validation
-    "critic" => %{mod: LLMEvaluator, domain: :general, layer: :eyes},
+    "critic" => %{mod: LLMEvaluator, domain: :all, layer: :eyes},
 
     # L4: Control & Reporting
     "router" => %{mod: IntentRouter, domain: :all, layer: :nerve},

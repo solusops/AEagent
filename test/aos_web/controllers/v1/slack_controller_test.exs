@@ -187,4 +187,30 @@ defmodule AOSWeb.V1.SlackControllerTest do
 
     assert text =~ "signed slack task"
   end
+
+  test "rejects signatures that only match reconstructed params", %{conn: conn} do
+    signing_secret =
+      :application.get_env(:aos, :slack_signing_secret, "dev-slack-signing-secret")
+
+    timestamp = Integer.to_string(System.system_time(:second))
+    raw_body = "text=signed+slack+task&command=%2Faos&start_immediately=false"
+    reconstructed_body = "command=%2Faos&start_immediately=false&text=signed+slack+task"
+
+    signature =
+      "v0=" <>
+        (:crypto.mac(:hmac, :sha256, signing_secret, "v0:#{timestamp}:#{reconstructed_body}")
+         |> Base.encode16(case: :lower))
+
+    conn =
+      conn
+      |> recycle()
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("x-slack-signature", signature)
+      |> put_req_header("x-slack-request-timestamp", timestamp)
+      |> put_req_header("content-type", "application/x-www-form-urlencoded")
+
+    conn = post(conn, "/api/v1/channels/slack/commands", raw_body)
+
+    assert json_response(conn, 422)
+  end
 end

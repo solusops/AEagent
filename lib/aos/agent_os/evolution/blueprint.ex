@@ -8,6 +8,7 @@ defmodule AOS.AgentOS.Evolution.Blueprint do
   def from_graph(%Graph{} = graph) do
     %{
       "id" => to_string(graph.id),
+      "domain" => stringify_node(graph.domain),
       "initial_node" => stringify_node(graph.initial_node),
       "nodes" =>
         Map.new(graph.nodes, fn {node_id, module} ->
@@ -27,9 +28,13 @@ defmodule AOS.AgentOS.Evolution.Blueprint do
     }
   end
 
-  def to_graph(%{"nodes" => nodes, "initial_node" => initial_node, "transitions" => transitions}) do
+  def to_graph(
+        %{"nodes" => nodes, "initial_node" => initial_node, "transitions" => transitions} =
+          blueprint
+      ) do
     graph =
       Graph.new(:strategy_graph)
+      |> Graph.set_domain(Map.get(blueprint, "domain"))
       |> add_nodes(nodes)
       |> Graph.set_initial(initial_node)
       |> add_transitions(transitions)

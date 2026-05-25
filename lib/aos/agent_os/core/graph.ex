@@ -5,6 +5,7 @@ defmodule AOS.AgentOS.Core.Graph do
   """
   defstruct [
     :id,
+    :domain,
     :initial_node,
     :strategy_id,
     :strategy_blueprint,
@@ -27,6 +28,10 @@ defmodule AOS.AgentOS.Core.Graph do
 
   def set_initial(graph, id) do
     %{graph | initial_node: id}
+  end
+
+  def set_domain(graph, domain) do
+    %{graph | domain: domain}
   end
 
   def add_transition(graph, from_id, outcome, to_id) do

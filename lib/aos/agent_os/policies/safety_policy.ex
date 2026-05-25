@@ -4,6 +4,7 @@ defmodule AOS.AgentOS.Policies.SafetyPolicy do
   """
   @behaviour AOS.AgentOS.Core.Policy
   require Logger
+  alias AOS.AgentOS.MCP.Tools.Helpers
   alias AOS.AgentOS.Policies.Config
 
   @pii_patterns [
@@ -68,8 +69,7 @@ defmodule AOS.AgentOS.Policies.SafetyPolicy do
   defp outside_workspace?(path) do
     workspace_root = Config.workspace_root()
     expanded_path = Path.expand(path, workspace_root)
-    expanded_root = Path.expand(workspace_root)
 
-    not String.starts_with?(expanded_path, expanded_root)
+    not Helpers.inside_workspace?(expanded_path, workspace_root)
   end
 end

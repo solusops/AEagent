@@ -27,6 +27,7 @@ defmodule AOS.AgentOS.Core.Engine do
         context
         |> Map.put_new(:execution_history, [])
         |> Map.put_new(:history, [])
+        |> Map.put(:graph_nodes, graph.nodes)
         |> Map.put(:notify, notify_pid)
 
       execute_node(graph, start_node, context, notify_pid)
@@ -41,6 +42,8 @@ defmodule AOS.AgentOS.Core.Engine do
 
   defp execute_node(graph, node_id, context, notify_pid) do
     node_module = Map.get(graph.nodes, node_id)
+    context = Map.put(context, :graph_nodes, graph.nodes)
+
     if notify_pid, do: send(notify_pid, {:workflow_step_started, node_id, node_module})
 
     case check_policies(@active_policies, context, node_id) do
