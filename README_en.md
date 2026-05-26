@@ -55,7 +55,8 @@ mix phx.server
 
 ## Current Implementation Status
 - **Enhanced Observability**: Adoption of OpenTelemetry to visualize the entire flow of LLM calls and tool executions.
-- **Dynamic Extensibility**: Dynamically registers and unregisters MCP (Model Context Protocol) servers at runtime to expand the toolset in real-time. - **Safety Controls**: Risky tools (such as `execute_command`) are executed only after user approval, and PII detection policies are applied.
+- **Dynamic Extensibility**: Dynamically registers and unregisters MCP (Model Context Protocol) servers at runtime to expand the toolset in real-time.
+- **Safety Controls**: Risky tools (such as `execute_command`) are executed only after user approval, and PII detection policies are applied.
 - **Evolution Strategy**: It automatically derives the optimal strategy by performing a semantic search for similar tasks within its history of successful executions.
 
 ## 💻 CLI Usage
