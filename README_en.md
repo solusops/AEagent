@@ -1,4 +1,9 @@
+<div align="center">
+  
 # Autonomous Evolutionary Agent 🧬
+
+[English 🇬🇧](README_en.md) | [Korean  🇰🇷](README.md)
+</div>
 
 Adopting an Elixir/OTP-based **Outcome-Driven Agent Graph** architecture, this next-generation AI agent system goes beyond merely executing fixed commands; it thinks autonomously, validates its own results, and evolves through experience.
 
